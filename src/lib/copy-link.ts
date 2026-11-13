@@ -91,9 +91,32 @@ export class copyLinkLib extends PDFPlusLibSubmodule {
             subpath,
             page,
             pageCount: child.pdfViewer.pagesCount,
-            pageLabel: child.getPage(page).pageLabel ?? ('' + page),
+            pageLabel: this.applyPageLabelOffset(file, child.getPage(page).pageLabel ?? ('' + page)),
             text: this.lib.toSingleLine(selection.toString()),
         };
+    }
+
+    /**
+     * The offset added to numeric page labels in text copied from the given PDF,
+     * set from the toolbar so that page labels match the printed edition.
+     */
+    getPageLabelOffset(file: TFile): number {
+        return this.settings.pageLabelOffsets[file.path.normalize('NFC')] ?? 0;
+    }
+
+    async setPageLabelOffset(file: TFile, offset: number) {
+        const key = file.path.normalize('NFC');
+        if (offset) this.settings.pageLabelOffsets[key] = offset;
+        else delete this.settings.pageLabelOffsets[key];
+        await this.plugin.saveSettings();
+        this.plugin.trigger('page-label-offset-change', { file });
+    }
+
+    /** Non-numeric page labels (e.g. roman numerals) are left as they are. */
+    applyPageLabelOffset(file: TFile, pageLabel: string): string {
+        const offset = this.getPageLabelOffset(file);
+        if (!offset || !/^\d+$/.test(pageLabel)) return pageLabel;
+        return '' + (+pageLabel + offset);
     }
 
     getLinkTemplateVariables(child: PDFViewerChild, displayTextFormat: string | undefined, file: TFile, subpath: string, page: number, text: string, comment: string, sourcePath?: string) {
@@ -139,7 +162,7 @@ export class copyLinkLib extends PDFPlusLibSubmodule {
                 file,
                 page,
                 pageCount: child.pdfViewer.pagesCount,
-                pageLabel: child.getPage(page).pageLabel ?? ('' + page),
+                pageLabel: this.applyPageLabelOffset(file, child.getPage(page).pageLabel ?? ('' + page)),
                 text,
                 comment: comment ?? '',
             }).evalTemplate(displayTextFormat)
@@ -184,7 +207,7 @@ export class copyLinkLib extends PDFPlusLibSubmodule {
         const processor = new PDFPlusTemplateProcessor(this.plugin, {
             file,
             page,
-            pageLabel: pageView.pageLabel ?? ('' + page),
+            pageLabel: this.applyPageLabelOffset(file, pageView.pageLabel ?? ('' + page)),
             pageCount: child.pdfViewer.pagesCount,
             text,
             comment,

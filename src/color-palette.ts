@@ -86,6 +86,10 @@ export class ColorPalette extends PDFPlusComponent {
             this.addWriteFileToggle(this.paletteEl);
         }
 
+        if (this.plugin.settings.autoModeIndicatorsInToolbar) {
+            this.addAutoModeIndicators(this.paletteEl);
+        }
+
         this.statusContainerEl = this.paletteEl.createDiv('pdf-plus-color-palette-status-container');
         this.statusEl = this.statusContainerEl.createSpan('pdf-plus-color-palette-status');
 
@@ -365,6 +369,37 @@ export class ColorPalette extends PDFPlusComponent {
         }
 
         this.setWriteFile(this.writeFile);
+    }
+
+    /**
+     * Icons showing whether auto-copy, auto-focus and auto-paste are enabled. Clicking one toggles the mode.
+     * Useful when the ribbon, where the toggle icons live, is hidden.
+     */
+    addAutoModeIndicators(paletteEl: HTMLElement) {
+        const { plugin } = this;
+        const modes = [
+            { key: 'autoCopy', icon: plugin.settings.autoCopyIconName, name: 'Auto-copy', toggle: () => plugin.autoCopyMode.toggle() },
+            { key: 'autoFocus', icon: plugin.settings.autoFocusIconName, name: 'Auto-focus', toggle: () => plugin.toggleAutoFocus() },
+            { key: 'autoPaste', icon: plugin.settings.autoPasteIconName, name: 'Auto-paste', toggle: () => plugin.toggleAutoPaste() },
+        ] as const;
+
+        const groupEl = paletteEl.createDiv(ColorPalette.CLS + '-auto-modes');
+        const iconEls = modes.map((mode) => {
+            return groupEl.createDiv('clickable-icon', (el) => {
+                setIcon(el, mode.icon);
+                el.addEventListener('click', () => mode.toggle());
+            });
+        });
+
+        const update = () => {
+            modes.forEach((mode, i) => {
+                const enabled = plugin.settings[mode.key];
+                iconEls[i].toggleClass('is-active', enabled);
+                setTooltip(iconEls[i], `${mode.name}: ${enabled ? 'on' : 'off'} (click to toggle)`);
+            });
+        };
+        update();
+        this.registerEvent(plugin.on('auto-mode-change', update));
     }
 
     removeWriteFileToggle() {

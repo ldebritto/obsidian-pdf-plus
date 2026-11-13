@@ -1,4 +1,4 @@
-import { Menu, Platform, setIcon, setTooltip } from 'obsidian';
+import { Menu, Notice, Platform, setIcon, setTooltip } from 'obsidian';
 
 import PDFPlus from 'main';
 import { PDFPlusComponent } from 'lib/component';
@@ -24,6 +24,7 @@ export class PDFPlusToolbar extends PDFPlusComponent {
         this.addColorPalette();
         this.replaceDisplayOptionsDropdown();
         this.addZoomLevelInputEl();
+        this.addPageLabelOffsetInputEl();
         this.makeDropdownInToolbarHoverable();
     }
 
@@ -295,5 +296,57 @@ export class PDFPlusToolbar extends PDFPlusComponent {
                 }));
             });
         }));
+    }
+
+    /**
+     * An input box next to the page number to set the offset added to page labels in copied text,
+     * for PDFs whose page numbers differ from the printed edition (e.g. scanned books).
+     */
+    addPageLabelOffsetInputEl() {
+        if (!this.settings.pageLabelOffsetInputInToolbar) return;
+
+        const { toolbar, child } = this;
+        const pageNumberEl = toolbar.pageNumberEl;
+        if (!pageNumberEl) return;
+
+        const inputEl = createEl('input', {
+            cls: 'pdf-plus-page-label-offset-input',
+            attr: { type: 'text', inputmode: 'numeric', placeholder: '±p', spellcheck: 'false' }
+        });
+        pageNumberEl.after(inputEl);
+        this.register(() => inputEl.remove());
+        setTooltip(inputEl, 'Page label offset for text copied from this PDF from now on (printed page = PDF page + offset). Leave empty or 0 to disable.');
+
+        const display = () => {
+            const file = child.file;
+            inputEl.disabled = !file;
+            const offset = file ? this.lib.copyLink.getPageLabelOffset(file) : 0;
+            if (inputEl.doc.activeElement !== inputEl) {
+                inputEl.value = offset ? (offset > 0 ? '+' : '') + offset : '';
+            }
+            inputEl.toggleClass('is-active', !!offset);
+        };
+
+        inputEl.addEventListener('change', async () => {
+            const file = child.file;
+            if (!file) return;
+            const text = inputEl.value.trim();
+            const offset = text === '' ? 0 : parseInt(text, 10);
+            if (isNaN(offset)) {
+                new Notice(`${this.plugin.manifest.name}: Invalid page label offset. Type an integer such as +1 or -2.`);
+                display();
+                return;
+            }
+            await this.lib.copyLink.setPageLabelOffset(file, offset);
+        });
+        // Keep the keys typed here from triggering the PDF viewer's shortcuts.
+        inputEl.addEventListener('keydown', (evt) => {
+            evt.stopPropagation();
+            if (evt.key === 'Enter' || evt.key === 'Escape') inputEl.blur();
+        });
+
+        this.registerEvent(this.plugin.on('page-label-offset-change', display));
+        toolbar.pdfViewer.eventBus?.on('pagesloaded', display);
+        display();
     }
 }

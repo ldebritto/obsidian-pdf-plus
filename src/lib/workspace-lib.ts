@@ -406,7 +406,7 @@ export class WorkspaceLib extends PDFPlusLibSubmodule {
     openPDFLinkTextInExistingLeafForTargetPDF(linktext: string, sourcePath: string, openViewState?: OpenViewState, targetFile?: TFile): { exists: boolean, promise: Promise<void> } {
         if (!targetFile) {
             const { path } = parseLinktext(linktext);
-            targetFile = this.app.metadataCache.getFirstLinkpathDest(path, sourcePath) ?? undefined;
+            targetFile = this.lib.getFirstLinkpathDest(path, sourcePath) ?? undefined;
         }
         if (!targetFile) return { exists: false, promise: Promise.resolve() };
 
@@ -459,7 +459,8 @@ export class WorkspaceLib extends PDFPlusLibSubmodule {
             // One more thing to note is that the view type checking is crucial
             // to filtering out "linked file views" like backlink views, outgoing link views, and outline views.
 
-            if (l.view.getViewType() === viewType && this.getFilePathFromView(l.view) === file.path) {
+            const path = this.getFilePathFromView(l.view);
+            if (l.view.getViewType() === viewType && path !== null && this.lib.isSameFilePath(path, file.path)) {
                 leaf = l;
             }
         });

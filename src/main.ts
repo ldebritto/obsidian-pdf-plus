@@ -538,6 +538,7 @@ export default class PDFPlus extends Plugin {
 		if (this.settings.autoFocus && this.settings.autoPaste) {
 			this.toggleAutoPaste(false, false);
 		}
+		this.trigger('auto-mode-change');
 
 		if (save ?? true) {
 			await this.saveSettings();
@@ -552,6 +553,7 @@ export default class PDFPlus extends Plugin {
 		if (this.settings.autoPaste && this.settings.autoFocus) {
 			this.toggleAutoFocus(false, false);
 		}
+		this.trigger('auto-mode-change');
 
 		if (save ?? true) {
 			await this.saveSettings();
@@ -876,6 +878,8 @@ export default class PDFPlus extends Plugin {
 	on(evt: 'color-palette-state-change', callback: (data: { source: ColorPalette }) => any, context?: any): EventRef;
 	on(evt: 'update-dom', callback: () => any, context?: any): EventRef;
 	on(evt: 'adapt-to-theme-change', callback: (data: { adapt: boolean }) => any, context?: any): EventRef;
+	on(evt: 'auto-mode-change', callback: () => any, context?: any): EventRef;
+	on(evt: 'page-label-offset-change', callback: (data: { file: TFile }) => any, context?: any): EventRef;
 
 	on(evt: string, callback: (...data: any) => any, context?: any): EventRef {
 		return this.events.on(evt, callback, context);
@@ -893,6 +897,8 @@ export default class PDFPlus extends Plugin {
 	trigger(evt: 'color-palette-state-change', data: { source: ColorPalette }): void;
 	trigger(evt: 'update-dom'): void;
 	trigger(evt: 'adapt-to-theme-change', data: { adapt: boolean }): void;
+	trigger(evt: 'auto-mode-change'): void;
+	trigger(evt: 'page-label-offset-change', data: { file: TFile }): void;
 
 	trigger(evt: string, ...args: any[]): void {
 		this.events.trigger(evt, ...args);

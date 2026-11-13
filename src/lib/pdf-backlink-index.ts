@@ -57,6 +57,14 @@ export class PDFBacklinkIndex extends PDFPlusComponent {
                 this.createCache(backlink, sourcePath);
             }
         }
+
+        // Links to a file outside the vault are unresolved, so `getBacklinksForFile` misses them.
+        if (this.lib.isOutsideVaultPath(this.file.path)) {
+            for (const sourcePath of this.lib.getSourcePathsLinkingToOutsideVaultFile(this.file)) {
+                const cache = this.app.metadataCache.getCache(sourcePath);
+                if (cache) this.update(sourcePath, cache);
+            }
+        }
     }
 
     update(sourcePath: string, cache: CachedMetadata) {
@@ -65,8 +73,8 @@ export class PDFBacklinkIndex extends PDFPlusComponent {
         const refs = [...cache.links ?? [], ...cache.embeds ?? [], ...cache.frontmatterLinks ?? []];
         for (const ref of refs) {
             const linktext = ref.link;
-            const targetFile = this.app.metadataCache.getFirstLinkpathDest(getLinkpath(linktext), sourcePath);
-            if (targetFile === this.file) {
+            const targetFile = this.lib.getFirstLinkpathDest(getLinkpath(linktext), sourcePath);
+            if (this.lib.isSameFile(targetFile, this.file)) {
                 this.createCache(ref, sourcePath);
             }
         }

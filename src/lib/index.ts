@@ -524,6 +524,57 @@ export class PDFPlusLib {
         return index.getPageIndex(pageNumber).annotations.get(id);
     }
 
+    /**
+     * Whether the given path or linkpath points to a file outside the vault.
+     * Obsidian (v1.15+) can open such files under a "file:" path (e.g. "file:/Users/me/Desktop/paper.pdf"),
+     * but they are not indexed by the metadata cache, so links to them always stay unresolved.
+     */
+    isOutsideVaultPath(path: string): boolean {
+        return path.startsWith('file:');
+    }
+
+    /**
+     * Whether two paths refer to the same file. Paths outside the vault are compared after Unicode normalization
+     * because the same file can come as NFC or NFD (e.g. paths given by macOS Finder are NFD).
+     */
+    isSameFilePath(a: string, b: string): boolean {
+        if (a === b) return true;
+        return this.isOutsideVaultPath(a) && this.isOutsideVaultPath(b) && a.normalize('NFC') === b.normalize('NFC');
+    }
+
+    /**
+     * Files outside the vault can be represented by different `TFile` instances, so compare them by path.
+     */
+    isSameFile(a: TFile | null, b: TFile | null): boolean {
+        return !!a && !!b && (a === b || this.isSameFilePath(a.path, b.path));
+    }
+
+    /**
+     * Same as `MetadataCache.getFirstLinkpathDest`, but also resolves links to files outside the vault ("file:...").
+     */
+    getFirstLinkpathDest(linkpath: string, sourcePath: string): TFile | null {
+        const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath);
+        if (file || !this.isOutsideVaultPath(linkpath)) return file;
+
+        const outsideFile = this.app.vault.getAbstractFileByPath(linkpath.normalize('NFC'));
+        return outsideFile instanceof TFile ? outsideFile : null;
+    }
+
+    /**
+     * Source paths of the notes linking to the given file outside the vault.
+     * `MetadataCache.getBacklinksForFile` returns nothing for such a file because the links to it are unresolved,
+     * so look them up in `MetadataCache.unresolvedLinks` instead.
+     */
+    getSourcePathsLinkingToOutsideVaultFile(file: TFile): string[] {
+        const sourcePaths: string[] = [];
+        for (const [sourcePath, linkpaths] of Object.entries(this.app.metadataCache.unresolvedLinks)) {
+            if (Object.keys(linkpaths).some((linkpath) => this.isSameFilePath(linkpath, file.path))) {
+                sourcePaths.push(sourcePath);
+            }
+        }
+        return sourcePaths;
+    }
+
     // TODO: rewrite using PDFBacklinkIndex
     isBacklinked(file: TFile, subpathParams?: { page: number, selection?: [number, number, number, number], annotation?: string }): boolean {
         // validate parameters

@@ -267,6 +267,38 @@ settings:
     font-variant-numeric: tabular-nums;
 }
 
+.pdf-plus-page-label-offset-input {
+    width: 5ch;
+    margin-left: var(--size-4-1);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.pdf-plus-page-label-offset-input.is-active {
+    color: var(--interactive-accent);
+    border-color: var(--interactive-accent);
+    font-weight: var(--font-semibold);
+}
+
+.pdf-plus-color-palette-auto-modes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: var(--size-4-1);
+    padding-left: var(--size-4-1);
+    border-left: 1px solid var(--background-modifier-border);
+}
+
+.pdf-plus-color-palette-auto-modes .clickable-icon {
+    opacity: 0.35;
+}
+
+.pdf-plus-color-palette-auto-modes .clickable-icon.is-active {
+    opacity: 1;
+    color: var(--interactive-accent);
+    background-color: var(--background-modifier-hover);
+}
+
 .pdf-zoom-level-percent {
     white-space: nowrap;
     margin-right: var(--size-4-1);

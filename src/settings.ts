@@ -276,6 +276,10 @@ export interface PDFPlusSettings {
 	usePageUpAndPageDown: boolean;
 	hoverableDropdownMenuInToolbar: boolean;
 	zoomLevelInputBoxInToolbar: boolean;
+	pageLabelOffsetInputInToolbar: boolean;
+	/** Offsets added to numeric page labels in copied text, keyed by PDF file path. */
+	pageLabelOffsets: Record<string, number>;
+	autoModeIndicatorsInToolbar: boolean;
 	popoverPreviewOnExternalLinkHover: boolean;
 	actionOnCitationHover: keyof typeof ACTION_ON_CITATION_HOVER;
 	anystylePath: string;
@@ -563,6 +567,9 @@ export const DEFAULT_SETTINGS: PDFPlusSettings = {
 	usePageUpAndPageDown: true,
 	hoverableDropdownMenuInToolbar: true,
 	zoomLevelInputBoxInToolbar: true,
+	pageLabelOffsetInputInToolbar: true,
+	pageLabelOffsets: {},
+	autoModeIndicatorsInToolbar: true,
 	popoverPreviewOnExternalLinkHover: true,
 	actionOnCitationHover: 'pdf-plus-bib-popover',
 	anystylePath: '',
@@ -1879,6 +1886,12 @@ export class PDFPlusSettingTab extends PluginSettingTab {
 		this.addToggleSetting('zoomLevelInputBoxInToolbar')
 			.setName('Show zoom level box')
 			.setDesc('A input box will be added to the PDF toolbar, which indicated the current zoom level and allows you to set the zoom level by typing a number.');
+		this.addToggleSetting('pageLabelOffsetInputInToolbar')
+			.setName('Show page label offset box')
+			.setDesc('An input box will be added next to the page number in the PDF toolbar. The number typed there (e.g. +1 or -2) is added to the page label ({{pageLabel}}) in the text copied from this PDF from then on, so that it matches the page number of the printed edition. Links keep pointing to the actual page, and text already copied is not changed. The offset is remembered for each PDF file. Reopen the PDF to apply this option.');
+		this.addToggleSetting('autoModeIndicatorsInToolbar')
+			.setName('Show auto-copy/auto-focus/auto-paste indicators')
+			.setDesc('Icons in the color palette show whether each mode is enabled, and clicking one toggles the mode. Reopen the PDF to apply this option.');
 
 		this.addHeading('Color palette', 'palette')
 			.setDesc('Clicking a color while selecting a range of text will copy a link to the selection with "&color=..." appended.');
