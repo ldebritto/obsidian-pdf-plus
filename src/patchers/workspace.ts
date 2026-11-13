@@ -1,4 +1,4 @@
-import { OpenViewState, PaneType, Workspace, WorkspaceLeaf, parseLinktext, Platform } from 'obsidian';
+import { MetadataCache, OpenViewState, PaneType, Workspace, parseLinktext, Platform } from 'obsidian';
 import { around } from 'monkey-around';
 
 import PDFPlus from 'main';
@@ -56,21 +56,13 @@ export const patchWorkspace = (plugin: PDFPlus) => {
         }
     }));
 
-    // Obsidian can open a file outside the vault ("file:/..."), but `WorkspaceLeaf.openLinkText`
-    // refuses a link to it with a "file not found" notice because the link is never resolved.
-    plugin.register(around(WorkspaceLeaf.prototype, {
-        openLinkText(old) {
-            return async function (this: WorkspaceLeaf, linktext: string, sourcePath: string, openViewState?: OpenViewState) {
-                const { path, subpath } = parseLinktext(linktext);
-                if (lib.isOutsideVaultPath(path)) {
-                    const file = lib.getFirstLinkpathDest(path, sourcePath);
-                    if (file) {
-                        openViewState = openViewState ?? {};
-                        openViewState.eState = { ...openViewState.eState, ...(subpath ? { subpath } : {}) };
-                        return this.openFile(file, openViewState);
-                    }
-                }
-                return old.call(this, linktext, sourcePath, openViewState);
+    // Obsidian can open a file outside the vault ("file:/..."), but never resolves a link to it,
+    // so following such a link, embedding the file (e.g. a rectangular selection) or previewing it fails
+    // with "not found". Resolving it here fixes all of them, and only affects links that would fail anyway.
+    plugin.register(around(MetadataCache.prototype, {
+        getFirstLinkpathDest(old) {
+            return function (this: MetadataCache, linkpath: string, sourcePath: string) {
+                return old.call(this, linkpath, sourcePath) ?? lib.getOutsideVaultFile(linkpath);
             };
         }
     }));

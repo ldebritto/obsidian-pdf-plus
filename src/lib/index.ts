@@ -553,11 +553,18 @@ export class PDFPlusLib {
      * Same as `MetadataCache.getFirstLinkpathDest`, but also resolves links to files outside the vault ("file:...").
      */
     getFirstLinkpathDest(linkpath: string, sourcePath: string): TFile | null {
-        const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath);
-        if (file || !this.isOutsideVaultPath(linkpath)) return file;
+        return this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath) ?? this.getOutsideVaultFile(linkpath);
+    }
 
-        const outsideFile = this.app.vault.getAbstractFileByPath(linkpath.normalize('NFC'));
-        return outsideFile instanceof TFile ? outsideFile : null;
+    /**
+     * The file outside the vault that the given linkpath ("file:/...") points to, if it exists.
+     * A subpath (e.g. "#page=12&rect=...") is ignored, because Obsidian sometimes passes the whole linktext.
+     */
+    getOutsideVaultFile(linkpath: string): TFile | null {
+        if (!this.isOutsideVaultPath(linkpath)) return null;
+        const { path } = parseLinktext(linkpath);
+        const file = this.app.vault.getAbstractFileByPath(path.normalize('NFC'));
+        return file instanceof TFile ? file : null;
     }
 
     /**
